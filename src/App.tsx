@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createJob, decideApproval, fetchApprovals, fetchHealth, resolveControllerApproval, type PendingApproval } from "./lib/api";
 import { RealtimeClient } from "./lib/realtime";
+import { WakeWordListener } from "./lib/wake-word";
 import type { Approval, JobEvent, WallCard, WallState } from "./types";
 
 const samplePrompts = [
@@ -23,9 +24,13 @@ export function App() {
   const [voiceStatus, setVoiceStatus] = useState("disconnected");
   const [listening, setListening] = useState(false);
   const [showType, setShowType] = useState(false);
+  const [wakeEnabled, setWakeEnabled] = useState(() => localStorage.getItem("radian-wake-word") === "true");
+  const [wakeStatus, setWakeStatus] = useState<"off" | "ready" | "unsupported" | "error">("off");
   const [theme, setTheme] = useState<"dark" | "light">(() => (localStorage.getItem("radian-theme") as "dark" | "light") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
   const eventSource = useRef<EventSource | undefined>(undefined);
   const realtime = useRef<RealtimeClient | undefined>(undefined);
+  const wakeWord = useRef<WakeWordListener | undefined>(undefined);
+  const beginListeningRef = useRef<() => Promise<void>>(async () => {});
 
   const startTask = async (taskPrompt: string) => {
     if (!taskPrompt.trim()) return "No task was supplied.";
@@ -71,8 +76,19 @@ export function App() {
       onError: (error) => { setMessage(error); setState("error"); }
     });
     realtime.current = client;
-    return () => { client.disconnect(); eventSource.current?.close(); };
+    const wake = new WakeWordListener(
+      () => beginListeningRef.current(),
+      setWakeStatus
+    );
+    wakeWord.current = wake;
+    return () => { wake.stop(); client.disconnect(); eventSource.current?.close(); };
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("radian-wake-word", String(wakeEnabled));
+    if (wakeEnabled && !listening) wakeWord.current?.start();
+    else { wakeWord.current?.stop(); setWakeStatus(wakeEnabled ? "off" : "off"); }
+  }, [wakeEnabled, listening]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -82,14 +98,23 @@ export function App() {
   const clock = useClock();
   const activityLabel = useMemo(() => state === "idle" ? "RADIAN" : state.toUpperCase(), [state]);
 
-  const toggleListening = async () => {
+  const beginListening = async () => {
+    wakeWord.current?.stop();
     if (voiceStatus === "disconnected" || voiceStatus === "error") await realtime.current?.connect();
-    const next = !listening;
-    setListening(next);
-    realtime.current?.setListening(next);
-    setState(next ? "listening" : "idle");
-    setMessage(next ? "I’m listening" : "Think out loud.");
-    if (next) setTranscript("");
+    setListening(true);
+    realtime.current?.setListening(true);
+    setState("listening");
+    setMessage("I’m listening");
+    setTranscript("");
+  };
+  beginListeningRef.current = beginListening;
+
+  const toggleListening = async () => {
+    if (!listening) return beginListening();
+    setListening(false);
+    realtime.current?.setListening(false);
+    setState("idle");
+    setMessage("Think out loud.");
   };
 
   const resolveApproval = async (approved: boolean) => {
@@ -105,9 +130,9 @@ export function App() {
         <div className="brand"><span className="brand-mark" />{activityLabel}<span className="studio-name">PRODUCTION STUDIO</span></div>
         <div className="system-status">
           {mockMode && <span className="mode-pill">PREVIEW</span>}
-          <span className={`dot ${voiceStatus}`} /> {voiceStatus === "connected" ? "Listening is available" : "Studio is ready"}
+          <span className={`dot ${wakeStatus === "ready" ? "connected" : voiceStatus}`} /> {wakeStatus === "ready" ? "Say “Hello Radian”" : voiceStatus === "connected" ? "Listening is available" : "Studio is ready"}
         </div>
-        <div className="header-actions"><button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Use ${theme === "dark" ? "light" : "dark"} mode`}><StudioIcon name={theme === "dark" ? "sun" : "moon"} /></button><time>{clock}</time></div>
+        <div className="header-actions"><button className={`theme-toggle wake-toggle ${wakeEnabled ? "active" : ""}`} onClick={() => setWakeEnabled((value) => !value)} aria-pressed={wakeEnabled} aria-label={wakeEnabled ? "Disable Hello Radian wake word" : "Enable Hello Radian wake word"} title={wakeStatus === "unsupported" ? "Wake word is not supported by this browser" : wakeEnabled ? "Wake word on" : "Enable wake word (microphone permission required)"}><StudioIcon name="waves" /></button><button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Use ${theme === "dark" ? "light" : "dark"} mode`}><StudioIcon name={theme === "dark" ? "sun" : "moon"} /></button><time>{clock}</time></div>
       </header>
 
       <section className="stage">
@@ -160,7 +185,8 @@ function StudioIcon({ name }: { name: string }) {
     sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></>,
     moon: <path d="M20 15.4A8 8 0 0 1 8.6 4a8 8 0 1 0 11.4 11.4Z"/>,
     mic: <><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></>,
-    keyboard: <><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M7 13.5h.01M10.5 13.5h.01M14 13.5h3.5M8 16h8"/></>
+    keyboard: <><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M7 13.5h.01M10.5 13.5h.01M14 13.5h3.5M8 16h8"/></>,
+    waves: <><path d="M8.5 8.5a5 5 0 0 0 0 7M5.5 5.5a9.2 9.2 0 0 0 0 13M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9.2 9.2 0 0 1 0 13"/><circle cx="12" cy="12" r="2"/></>
   };
   return <svg className="studio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }

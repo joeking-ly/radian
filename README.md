@@ -10,6 +10,7 @@ This is a functional prototype, not an OpenAI product or an attempt to reproduce
 
 - Full-screen wall interface with idle, listening, planning, working, approval, presenting, and error states
 - Push-to-talk speech-to-speech session using `gpt-realtime-2.1` over WebRTC
+- Optional “Hello Radian” wake word using the browser speech-recognition service
 - Voice handoff to `gpt-6-astra` through the Responses API
 - Persistent isolated Chromium browser with public-network restrictions
 - Live job updates over server-sent events
@@ -78,11 +79,13 @@ Restart `npm run dev`. The API key stays on the server and is never returned to 
 
 ## Operating the prototype
 
-1. Select **Talk to Astra** and allow microphone access.
+1. Select **Speak** and allow microphone access.
 2. Speak a request. The voice agent hands substantive work to Astra.
 3. Watch task status and controlled-browser screenshots on the wall.
 4. Approve or cancel any state-changing action.
 5. Use the text field as a fallback during development.
+
+To use hands-free activation, select the wave icon once and grant microphone permission. While armed, saying “Hello Radian” or using “Radian” in a phrase starts the full voice session. Browser speech-recognition availability varies, and recognition may be processed by the browser vendor; the status bar reports when wake listening is active.
 
 ## Security boundaries
 
