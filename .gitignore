@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-server/
+.env
+artifacts/*
+!artifacts/.gitkeep
+playwright/.auth/
+.DS_Store
+npm-debug.log*
+*.tsbuildinfo
