@@ -4,16 +4,16 @@ import { RealtimeClient } from "./lib/realtime";
 import type { Approval, JobEvent, WallCard, WallState } from "./types";
 
 const samplePrompts = [
-  "Research three competitors and present the differences",
-  "Open OpenAI's website and tell me what changed",
-  "Create a concise launch plan for a new ecommerce brand"
+  "Prepare today’s production board",
+  "Render the latest Blender scene",
+  "Turn the concept notes into a presentation"
 ];
 
 export function App() {
   if (window.location.pathname === "/controller") return <Controller />;
   const [state, setState] = useState<WallState>("idle");
   const [jobId, setJobId] = useState<string>();
-  const [message, setMessage] = useState("Ready when you are");
+  const [message, setMessage] = useState("What are we making?");
   const [transcript, setTranscript] = useState("");
   const [card, setCard] = useState<WallCard>();
   const [approval, setApproval] = useState<Approval>();
@@ -34,7 +34,7 @@ export function App() {
     setApproval(undefined);
     setScreenshot(undefined);
     setState("planning");
-    setMessage("Understanding the request");
+    setMessage("Getting things ready");
     const job = await createJob(taskPrompt);
     setJobId(job.id);
     subscribe(job.id);
@@ -81,7 +81,7 @@ export function App() {
     setListening(next);
     realtime.current?.setListening(next);
     setState(next ? "listening" : "idle");
-    setMessage(next ? "Listening" : "Ready when you are");
+    setMessage(next ? "I’m listening" : "What are we making?");
     if (next) setTranscript("");
   };
 
@@ -95,10 +95,10 @@ export function App() {
     <main className={`wall state-${state}`}>
       <div className="aurora aurora-one" /><div className="aurora aurora-two" />
       <header>
-        <div className="brand"><span className="brand-mark" />{activityLabel}</div>
+        <div className="brand"><span className="brand-mark" />{activityLabel}<span className="studio-name">PRODUCTION STUDIO</span></div>
         <div className="system-status">
-          {mockMode && <span className="mode-pill">DEMO MODE</span>}
-          <span className={`dot ${voiceStatus}`} /> {voiceStatus === "connected" ? "VOICE ONLINE" : "VOICE OFFLINE"}
+          {mockMode && <span className="mode-pill">PREVIEW</span>}
+          <span className={`dot ${voiceStatus}`} /> {voiceStatus === "connected" ? "Listening is available" : "Studio is ready"}
         </div>
         <time>{clock}</time>
       </header>
@@ -114,8 +114,10 @@ export function App() {
         </article>}
         {!card && !screenshot && <div className="focus">
           <div className={`orb ${listening ? "active" : ""}`}><div /><div /><div /></div>
+          <p className="presence">YOUR STUDIO, IN ONE PLACE</p>
           <h1>{message}</h1>
           {transcript && <p className="transcript">“{transcript}”</p>}
+          {!transcript && state === "idle" && <p className="quiet-copy">Speak naturally, or start with a thought below.</p>}
         </div>}
       </section>
 
@@ -128,11 +130,11 @@ export function App() {
 
       <footer>
         <form onSubmit={(event) => { event.preventDefault(); startTask(prompt).catch((e) => { setMessage(e.message); setState("error"); }); }}>
-          <input value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Ask Astra to do something…" />
+          <input value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe what you’d like to make…" />
           <button className="send" aria-label="Submit">↗</button>
         </form>
         <button className={`mic ${listening ? "active" : ""}`} onClick={toggleListening} aria-label="Toggle microphone">
-          <span className="mic-icon">●</span><span>{listening ? "Release to stop" : "Talk to Astra"}</span>
+          <span className="mic-icon">●</span><span>{listening ? "Finished speaking" : "Speak"}</span>
         </button>
         <div className="suggestions">{samplePrompts.map((item) => <button key={item} onClick={() => startTask(item)}>{item}</button>)}</div>
       </footer>

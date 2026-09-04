@@ -73,10 +73,10 @@ async function runMockJob(job: Job): Promise<void> {
   jobs.emit(job, {
     type: "card", state: "presenting", message: "Briefing ready",
     card: {
-      eyebrow: "DEMONSTRATION RESULT",
-      title: "Radian is operational",
-      body: `The interface received: “${job.prompt}”. Add an OpenAI API key and disable mock mode to run the request through GPT-6 Astra.`,
-      bullets: ["Realtime voice bridge is ready", "Astra tool loop is wired", "Approval gates are enforced", "Browser runs in an isolated session"]
+      eyebrow: "READY FOR REVIEW",
+      title: "Your workspace is ready",
+      body: `I received: “${job.prompt}”. This preview followed the complete production flow without changing any connected system.`,
+      bullets: ["The brief was understood", "Studio tools are available", "Sensitive actions wait for approval", "Nothing was sent or published"]
     }
   });
   jobs.emit(job, { type: "complete", state: "presenting", message: "Complete" });
