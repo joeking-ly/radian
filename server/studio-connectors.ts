@@ -9,21 +9,21 @@ import { config } from "./config.js";
 import { requireApproval } from "./approval.js";
 import type { Job } from "./types.js";
 
-const object = (properties: Record<string, unknown>, required: string[] = []) => ({ type: "object", properties, required, additionalProperties: false });
+const object = (properties: Record<string, unknown>) => ({ type: "object", properties, required: Object.keys(properties), additionalProperties: false });
 const string = { type: "string" } as const;
 
 export const studioToolDefinitions = [
   { type: "function", name: "connector_status", description: "List configured production-studio connectors without exposing credentials.", parameters: object({}), strict: true },
-  { type: "function", name: "google_drive_search", description: "Search the connected operator's Google Drive.", parameters: object({ query: string, limit: { type: "number" } }, ["query"]), strict: true },
-  { type: "function", name: "google_doc_create", description: "Create a Google Doc after approval.", parameters: object({ title: string, body: string }, ["title", "body"]), strict: true },
-  { type: "function", name: "google_slides_create", description: "Create a Google Slides deck containing title and body slides after approval.", parameters: object({ title: string, slides: { type: "array", items: object({ title: string, body: string }, ["title", "body"]) } }, ["title", "slides"]), strict: true },
-  { type: "function", name: "slack_search", description: "Search messages visible to the connected Slack user.", parameters: object({ query: string, limit: { type: "number" } }, ["query"]), strict: true },
-  { type: "function", name: "slack_send", description: "Send an exact Slack message after communication approval.", parameters: object({ channel: string, text: string }, ["channel", "text"]), strict: true },
-  { type: "function", name: "blender_render", description: "Render a Blender file in the configured studio workspace.", parameters: object({ input: string, output: string, frame: { type: "number" } }, ["input", "output"]), strict: true },
-  { type: "function", name: "blender_export", description: "Run an operator-reviewed Blender Python export script against a blend file.", parameters: object({ input: string, script: string }, ["input", "script"]), strict: true },
-  { type: "function", name: "bambu_slice", description: "Slice a 3MF project with Bambu Studio and export a sliced 3MF.", parameters: object({ input: string, output: string, plate: { type: "number" } }, ["input", "output"]), strict: true },
-  { type: "function", name: "bambu_print", description: "Upload a sliced 3MF to the configured Bambu printer and start it after mandatory approval.", parameters: object({ file: string, plateGcode: string, useAms: { type: "boolean" }, timelapse: { type: "boolean" } }, ["file", "plateGcode"]), strict: true },
-  { type: "function", name: "studio_webhook", description: "Call an operator-configured studio system by connector and action name. Mutating connectors require approval.", parameters: object({ connector: string, action: string, input: { type: "object", additionalProperties: true } }, ["connector", "action", "input"]), strict: false }
+  { type: "function", name: "google_drive_search", description: "Search the connected operator's Google Drive.", parameters: object({ query: string, limit: { type: "number" } }), strict: true },
+  { type: "function", name: "google_doc_create", description: "Create a Google Doc after approval.", parameters: object({ title: string, body: string }), strict: true },
+  { type: "function", name: "google_slides_create", description: "Create a Google Slides deck containing title and body slides after approval.", parameters: object({ title: string, slides: { type: "array", items: object({ title: string, body: string }) } }), strict: true },
+  { type: "function", name: "slack_search", description: "Search messages visible to the connected Slack user.", parameters: object({ query: string, limit: { type: "number" } }), strict: true },
+  { type: "function", name: "slack_send", description: "Send an exact Slack message after communication approval.", parameters: object({ channel: string, text: string }), strict: true },
+  { type: "function", name: "blender_render", description: "Render a Blender file in the configured studio workspace.", parameters: object({ input: string, output: string, frame: { type: "number" } }), strict: true },
+  { type: "function", name: "blender_export", description: "Run an operator-reviewed Blender Python export script against a blend file.", parameters: object({ input: string, script: string }), strict: true },
+  { type: "function", name: "bambu_slice", description: "Slice a 3MF project with Bambu Studio and export a sliced 3MF.", parameters: object({ input: string, output: string, plate: { type: "number" } }), strict: true },
+  { type: "function", name: "bambu_print", description: "Upload a sliced 3MF to the configured Bambu printer and start it after mandatory approval.", parameters: object({ file: string, plateGcode: string, useAms: { type: "boolean" }, timelapse: { type: "boolean" } }), strict: true },
+  { type: "function", name: "studio_webhook", description: "Call an operator-configured studio system by connector and action name. Mutating connectors require approval.", parameters: object({ connector: string, action: string, input: { type: "object", additionalProperties: true } }), strict: false }
 ] as const;
 
 const inputSchema = z.string().min(1);

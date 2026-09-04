@@ -14,7 +14,7 @@ export class RealtimeClient {
 
   constructor(private handlers: RealtimeHandlers) {}
 
-  async connect(): Promise<void> {
+  async connect(): Promise<boolean> {
     this.handlers.onState("connecting");
     try {
       const pc = new RTCPeerConnection();
@@ -22,9 +22,10 @@ export class RealtimeClient {
       audio.autoplay = true;
       pc.ontrack = (event) => (audio.srcObject = event.streams[0]);
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone access is not supported in this browser. Open Radian in Chrome or Edge.");
+      const stream = await withTimeout(navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-      });
+      }), 15_000, "Microphone permission timed out. Allow microphone access in the browser, then try again.");
       const track = stream.getAudioTracks()[0];
       track.enabled = false;
       pc.addTrack(track, stream);
@@ -48,10 +49,12 @@ export class RealtimeClient {
       this.dc = dc;
       this.stream = stream;
       this.audio = audio;
+      return true;
     } catch (error) {
       this.handlers.onState("error");
       this.handlers.onError(error instanceof Error ? error.message : "Realtime connection failed");
       this.disconnect();
+      return false;
     }
   }
 
@@ -102,4 +105,11 @@ export class RealtimeClient {
   private send(event: object): void {
     if (this.dc?.readyState === "open") this.dc.send(JSON.stringify(event));
   }
+}
+
+function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), milliseconds);
+    promise.then((value) => { window.clearTimeout(timer); resolve(value); }, (error) => { window.clearTimeout(timer); reject(error); });
+  });
 }

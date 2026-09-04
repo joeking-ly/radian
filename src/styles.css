@@ -3,8 +3,8 @@
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 button, input { font: inherit; }
-.wall { min-height: 100%; position: relative; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; background: radial-gradient(ellipse at 50% 48%, #25231f 0, #121210 37%, #080807 74%); cursor: none; }
-.wall button, .wall input { cursor: pointer; }.wall input { cursor: text; }
+.wall { min-height: 100%; position: relative; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; background: radial-gradient(ellipse at 50% 48%, #25231f 0, #121210 37%, #080807 74%); }
+.wall button { cursor: pointer; }.wall input { cursor: text; }
 .wall::after { content: ""; position: absolute; inset: 0; opacity: .04; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E"); }
 .aurora { position: absolute; width: 52vw; height: 52vw; filter: blur(140px); opacity: .12; border-radius: 50%; pointer-events: none; transition: 1.4s ease; }
 .aurora-one { left: -17vw; bottom: -24vw; background: #b88a5c; }.aurora-two { right: -18vw; top: -22vw; background: #776554; }
@@ -12,10 +12,12 @@ button, input { font: inherit; }
 header { z-index: 2; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 32px 42px; letter-spacing: .1em; font-size: 11px; color: #97928a; }
 .brand { display: flex; gap: 12px; align-items: center; font-weight: 650; color: #f0ede7; }.brand-mark { width: 14px; height: 14px; border: 1px solid #d5b48b; border-radius: 50%; box-shadow: inset 0 0 8px #d5b48b, 0 0 14px #c7996655; }.studio-name { margin-left: 8px; color: #77726b; font-weight: 500; }
 .system-status { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: .04em; }.dot { width: 6px; height: 6px; border-radius: 50%; background: #b99772; box-shadow: 0 0 10px #b9977266; }.dot.connected { background: #9bc6a7; box-shadow: 0 0 10px #9bc6a7; }.mode-pill { border: 1px solid #a4866555; color: #c9aa83; border-radius: 20px; padding: 5px 9px; margin-right: 8px; letter-spacing: .12em; }
+.dot.error { background: #dc7f6f; box-shadow: 0 0 10px #dc7f6f88; }
 time { justify-self: end; font-variant-numeric: tabular-nums; }
 .header-actions { justify-self: end; display: flex; align-items: center; gap: 17px; }
 .theme-toggle { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 1px solid #e8dac817; color: #999187; background: #171613aa; cursor: pointer; transition: .2s ease; }.theme-toggle:hover { color: #eee6dc; border-color: #c8aa8544; transform: rotate(8deg); }.studio-icon { width: 20px; height: 20px; }
 .wake-toggle.active { color: #e1bb8c; border-color: #c8a07155; background: #2a2119; box-shadow: 0 0 22px #c28f5522; }.wake-toggle.active .studio-icon { animation: wake-pulse 2.4s ease-in-out infinite; }
+.wake-toggle.error { color: #e18979; border-color: #d5726255; background: #2c1a17; box-shadow: 0 0 22px #d5726222; }
 .stage { z-index: 1; display: grid; place-items: center; min-height: 0; padding: 2vh 5vw; }
 .focus { text-align: center; max-width: 1000px; }.focus h1 { font-size: clamp(42px, 5.8vw, 88px); font-weight: 480; letter-spacing: -.055em; line-height: 1; margin: 25px 0 18px; }.presence { margin: 26px 0 0; color: #9e8061; font-size: 11px; font-weight: 650; letter-spacing: .2em; }.quiet-copy { color: #87827a; font-size: clamp(15px, 1.2vw, 19px); }.transcript { color: #c8c1b7; font-size: clamp(18px, 2vw, 30px); line-height: 1.45; }
 .orb { width: clamp(90px, 9vw, 145px); aspect-ratio: 1; margin: auto; position: relative; display: grid; place-items: center; filter: drop-shadow(0 14px 40px #bd956a22); }.orb::after { content: ""; width: 18%; aspect-ratio: 1; border-radius: 50%; background: #e4c39d; box-shadow: 0 0 35px 12px #c2916055; animation: core-breathe 3.8s ease-in-out infinite; }.orb div { position: absolute; inset: 17%; border: 1px solid #d1b18b72; border-radius: 44% 56% 62% 38% / 51% 42% 58% 49%; animation: orbit-one 8s ease-in-out infinite; }.orb div:nth-child(2) { inset: 6%; border-color: #8d796366; animation: orbit-two 12s ease-in-out infinite; }.orb div:nth-child(3) { inset: 31%; border-color: #d1b18b88; animation: orbit-three 6s ease-in-out infinite; }.orb.active div { animation-duration: 1.7s; border-color: #e0bd91bb; }.orb.active::after { animation-duration: .9s; }

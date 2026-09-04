@@ -60,7 +60,7 @@ export function App() {
 
   const applyEvent = (event: JobEvent) => {
     if (event.state) setState(event.state);
-    if (event.message) setMessage(event.message);
+    if (event.message) setMessage(event.type === "error" ? friendlyError(event.message) : event.message);
     if (event.type === "card" && event.card) setCard(event.card);
     if (event.type === "browser" && event.screenshotUrl) setScreenshot(event.screenshotUrl);
     if (event.type === "approval" && event.approval) setApproval(event.approval);
@@ -73,7 +73,7 @@ export function App() {
       onState: setVoiceStatus,
       onTranscript: (delta) => setTranscript((value) => value + delta),
       onTask: startTask,
-      onError: (error) => { setMessage(error); setState("error"); }
+      onError: (error) => { console.error(error); setMessage(friendlyError(error)); setState("error"); }
     });
     realtime.current = client;
     const wake = new WakeWordListener(
@@ -100,7 +100,12 @@ export function App() {
 
   const beginListening = async () => {
     wakeWord.current?.stop();
-    if (voiceStatus === "disconnected" || voiceStatus === "error") await realtime.current?.connect();
+    setState("listening");
+    setMessage("Opening the microphone…");
+    if (voiceStatus === "disconnected" || voiceStatus === "error") {
+      const connected = await realtime.current?.connect();
+      if (!connected) { setListening(false); return; }
+    }
     setListening(true);
     realtime.current?.setListening(true);
     setState("listening");
@@ -130,9 +135,9 @@ export function App() {
         <div className="brand"><span className="brand-mark" />{activityLabel}<span className="studio-name">PRODUCTION STUDIO</span></div>
         <div className="system-status">
           {mockMode && <span className="mode-pill">PREVIEW</span>}
-          <span className={`dot ${wakeStatus === "ready" ? "connected" : voiceStatus}`} /> {wakeStatus === "ready" ? "Say “Hello Radian”" : voiceStatus === "connected" ? "Listening is available" : "Studio is ready"}
+          <span className={`dot ${wakeStatus === "ready" ? "connected" : wakeStatus === "error" || wakeStatus === "unsupported" ? "error" : voiceStatus}`} /> {wakeStatus === "ready" ? "Say “Hello Radian”" : wakeStatus === "unsupported" ? "Wake word needs Chrome or Edge" : wakeStatus === "error" ? "Microphone permission needed" : voiceStatus === "connected" ? "Listening is available" : "Studio is ready"}
         </div>
-        <div className="header-actions"><button className={`theme-toggle wake-toggle ${wakeEnabled ? "active" : ""}`} onClick={() => setWakeEnabled((value) => !value)} aria-pressed={wakeEnabled} aria-label={wakeEnabled ? "Disable Hello Radian wake word" : "Enable Hello Radian wake word"} title={wakeStatus === "unsupported" ? "Wake word is not supported by this browser" : wakeEnabled ? "Wake word on" : "Enable wake word (microphone permission required)"}><StudioIcon name="waves" /></button><button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Use ${theme === "dark" ? "light" : "dark"} mode`}><StudioIcon name={theme === "dark" ? "sun" : "moon"} /></button><time>{clock}</time></div>
+        <div className="header-actions"><button className={`theme-toggle wake-toggle ${wakeEnabled ? "active" : ""} ${wakeStatus === "error" || wakeStatus === "unsupported" ? "error" : ""}`} onClick={() => setWakeEnabled((value) => !value)} aria-pressed={wakeEnabled} aria-label={wakeEnabled ? "Disable Hello Radian wake word" : "Enable Hello Radian wake word"} title={wakeStatus === "unsupported" ? "Wake word is not supported by this browser" : wakeStatus === "error" ? "Check microphone permission" : wakeEnabled ? "Wake word on" : "Enable wake word (microphone permission required)"}><StudioIcon name="waves" /></button><button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Use ${theme === "dark" ? "light" : "dark"} mode`}><StudioIcon name={theme === "dark" ? "sun" : "moon"} /></button><time>{clock}</time></div>
       </header>
 
       <section className="stage">
@@ -175,6 +180,13 @@ export function App() {
       </footer>
     </main>
   );
+}
+
+function friendlyError(message: string): string {
+  if (/invalid schema|invalid_function_parameters/i.test(message)) return "A studio tool needs an update.";
+  if (/microphone|permission|notallowederror/i.test(message)) return "Microphone access is needed. Check your browser permissions and try again.";
+  if (/model|access|permission/i.test(message)) return "This OpenAI project may not have access to the selected voice or workspace model.";
+  return "Something needs attention. Check the server log for details.";
 }
 
 function StudioIcon({ name }: { name: string }) {
