@@ -3,6 +3,8 @@ import { z } from "zod";
 import { browserWorkspace } from "./browser.js";
 import { jobs } from "./job-store.js";
 import type { Job, WallCard } from "./types.js";
+import { studioToolDefinitions, executeStudioTool } from "./studio-connectors.js";
+import { requireApproval } from "./approval.js";
 
 export const toolDefinitions = [
   {
@@ -52,7 +54,8 @@ export const toolDefinitions = [
         risk: { type: "string", enum: ["modify", "communicate", "financial", "destructive"] }
       }, required: ["title", "description", "risk"], additionalProperties: false
     }, strict: true
-  }
+  },
+  ...studioToolDefinitions
 ] as const;
 
 const cardSchema = z.object({ title: z.string(), eyebrow: z.string().optional(), body: z.string(), bullets: z.array(z.string()).default([]), sourceUrl: z.string().optional() });
@@ -90,6 +93,6 @@ export async function executeTool(job: Job, name: string, rawArguments: string):
         job.approvalResolver = (approved) => resolve(approved ? "User approved the action" : "User rejected the action");
       });
     }
-    default: throw new Error(`Unknown tool: ${name}`);
+    default: return executeStudioTool(job, name, args);
   }
 }

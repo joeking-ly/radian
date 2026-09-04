@@ -21,3 +21,11 @@ footer { z-index: 2; padding: 18px 42px 30px; display: grid; grid-template-colum
 .approval-backdrop { position: absolute; z-index: 10; inset: 0; display: grid; place-items: center; background: #010204bb; backdrop-filter: blur(18px); }.approval-card { width: min(620px, 86vw); background: #151a20; border: 1px solid #ffffff1f; border-radius: 28px; padding: 42px; box-shadow: 0 30px 100px #000; }.approval-card h2 { font-size: 35px; margin: 20px 0 10px; }.approval-card p { color: #b9c2ca; line-height: 1.55; }.approval-card > div { display: flex; gap: 12px; justify-content: flex-end; margin-top: 30px; }.approval-card button { border: 0; border-radius: 12px; padding: 13px 22px; cursor: pointer; }.primary { background: #edf5f3; color: #101412; }.secondary { background: #272e36; color: #e4e9ed; }.risk { text-transform: uppercase; letter-spacing: .13em; font-size: 12px; color: #edc169; }
 @keyframes spin { to { transform: rotate(360deg); } } @keyframes drift { to { transform: translate(8vw, -5vw) scale(1.2); } }
 @media (max-width: 800px) { header { padding: 20px; }.system-status { display: none; } footer { padding: 16px 20px 22px; grid-template-columns: 1fr; }.mic { min-height: 54px; }.suggestions { display: none; } }
+.controller { min-height: 100%; overflow: auto; background: radial-gradient(circle at 50% 10%, #16202c, #05070a 55%); padding-bottom: 40px; }
+.controller header { display: flex; }
+.controller > section { width: min(680px, calc(100% - 32px)); margin: 20px auto; display: grid; gap: 20px; }
+.controller form { display: flex; min-height: 60px; }
+.controller .approval-card { width: 100%; }
+.controller .controller-empty { text-align: center; padding: 25vh 20px 0; color: #b9c2ca; }
+.controller .controller-empty h1 { color: #f7f7f2; }
+.controller-error { color: #ff9a9a; background: #351a1a; padding: 16px; border-radius: 12px; }

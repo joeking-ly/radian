@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { config } from "./config.js";
 import { jobs } from "./job-store.js";
@@ -9,8 +8,7 @@ import { runAstraJob } from "./astra.js";
 import { createRealtimeSession } from "./realtime.js";
 
 const app = express();
-const dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(dirname, "..");
+const root = path.resolve(process.cwd());
 app.use(cors({ origin: config.origins }));
 app.use("/artifacts", express.static(path.join(root, "artifacts")));
 
@@ -54,6 +52,27 @@ app.post("/api/jobs/:id/approval", (req, res) => {
   const resolve = job.approvalResolver;
   job.approval = undefined; job.approvalResolver = undefined;
   jobs.status(job, "working", approved ? "Approved — continuing" : "Cancelled — adjusting the task");
+  resolve(approved);
+  res.json({ ok: true });
+});
+
+const requireController = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!config.CONTROLLER_TOKEN) return res.status(503).json({ error: "CONTROLLER_TOKEN is not configured" });
+  if (req.headers.authorization !== `Bearer ${config.CONTROLLER_TOKEN}`) return res.status(401).json({ error: "Invalid controller token" });
+  next();
+};
+
+app.get("/api/controller/approvals", requireController, (_req, res) => {
+  res.json(jobs.pendingApprovals().map((job) => ({ jobId: job.id, prompt: job.prompt, approval: job.approval })));
+});
+
+app.post("/api/controller/approvals/:jobId/:approvalId", requireController, (req, res) => {
+  const job = jobs.get(String(req.params.jobId));
+  if (!job?.approval || !job.approvalResolver || job.approval.id !== String(req.params.approvalId)) return res.status(404).json({ error: "Approval is no longer pending" });
+  const { approved } = z.object({ approved: z.boolean() }).parse(req.body);
+  const resolve = job.approvalResolver;
+  job.approval = undefined; job.approvalResolver = undefined;
+  jobs.status(job, "working", approved ? "Approved from controller — continuing" : "Rejected from controller");
   resolve(approved);
   res.json({ ok: true });
 });

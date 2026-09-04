@@ -13,6 +13,10 @@ class JobStore {
 
   get(id: string): Job | undefined { return this.jobs.get(id); }
 
+  pendingApprovals(): Job[] {
+    return [...this.jobs.values()].filter((job) => job.approval && job.approvalResolver);
+  }
+
   emit(job: Job, event: Omit<JobEvent, "id" | "jobId" | "createdAt">): JobEvent {
     if (event.state) job.state = event.state;
     const full: JobEvent = {

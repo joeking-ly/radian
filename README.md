@@ -14,6 +14,8 @@ This is a functional prototype, not an OpenAI product or an attempt to reproduce
 - Persistent isolated Chromium browser with public-network restrictions
 - Live job updates over server-sent events
 - Approval gate for external or sensitive actions
+- Production-studio connectors for Google Workspace, Slack, Blender, and Bambu Lab printers
+- Mobile approval controller and operator-defined webhook connectors
 - Mock mode for testing the entire UI without API access
 - macOS kiosk launcher
 
@@ -117,6 +119,8 @@ Build direct API tools before relying on visual browser control:
 5. A phone-based approval controller
 
 See [Integration and hardware guide](docs/IMPLEMENTATION-GUIDE.md) for the recommended architecture, implementation sequence, security controls, and screen/projector options.
+
+Connector installation and account setup are documented in [Studio connectors](docs/STUDIO-CONNECTORS.md).
 
 ## References
 

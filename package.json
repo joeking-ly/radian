@@ -12,10 +12,14 @@
     "kiosk": "bash scripts/mac-kiosk.sh"
   },
   "dependencies": {
+    "@slack/web-api": "^8.1.1",
     "@vitejs/plugin-react": "latest",
+    "basic-ftp": "^6.2.1",
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
+    "googleapis": "^178.0.0",
+    "mqtt": "^5.15.2",
     "playwright": "latest",
     "react": "latest",
     "react-dom": "latest",

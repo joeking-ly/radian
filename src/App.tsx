@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createJob, decideApproval, fetchHealth } from "./lib/api";
+import { createJob, decideApproval, fetchApprovals, fetchHealth, resolveControllerApproval, type PendingApproval } from "./lib/api";
 import { RealtimeClient } from "./lib/realtime";
 import type { Approval, JobEvent, WallCard, WallState } from "./types";
 
@@ -10,6 +10,7 @@ const samplePrompts = [
 ];
 
 export function App() {
+  if (window.location.pathname === "/controller") return <Controller />;
   const [state, setState] = useState<WallState>("idle");
   const [jobId, setJobId] = useState<string>();
   const [message, setMessage] = useState("Ready when you are");
@@ -137,6 +138,44 @@ export function App() {
       </footer>
     </main>
   );
+}
+
+function Controller() {
+  const [token, setToken] = useState(() => sessionStorage.getItem("radian-controller-token") ?? "");
+  const [items, setItems] = useState<PendingApproval[]>([]);
+  const [error, setError] = useState("");
+  const refresh = async () => {
+    if (!token) return;
+    try { setItems(await fetchApprovals(token)); setError(""); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Controller unavailable"); }
+  };
+  useEffect(() => {
+    if (!token) return;
+    sessionStorage.setItem("radian-controller-token", token);
+    refresh();
+    const timer = window.setInterval(refresh, 2_000);
+    return () => window.clearInterval(timer);
+  }, [token]);
+  const decide = async (item: PendingApproval, approved: boolean) => {
+    await resolveControllerApproval(token, item, approved);
+    await refresh();
+  };
+  return <main className="controller">
+    <header><div className="brand"><span className="brand-mark" />RADIAN CONTROLLER</div></header>
+    <section>
+      {!token && <form onSubmit={(event) => { event.preventDefault(); setToken(new FormData(event.currentTarget).get("token") as string); }}>
+        <input name="token" type="password" minLength={24} placeholder="Controller token" required />
+        <button className="primary">Connect</button>
+      </form>}
+      {error && <p className="controller-error">{error}</p>}
+      {token && !items.length && !error && <div className="controller-empty"><h1>No pending approvals</h1><p>Keep this page open. New studio actions will appear here.</p></div>}
+      {items.map((item) => <article className="approval-card" key={item.approval.id}>
+        <span className={`risk risk-${item.approval.risk}`}>{item.approval.risk} action</span>
+        <h2>{item.approval.title}</h2><p>{item.approval.description}</p><small>Task: {item.prompt}</small>
+        <div><button className="secondary" onClick={() => decide(item, false)}>Reject</button><button className="primary" onClick={() => decide(item, true)}>Approve</button></div>
+      </article>)}
+    </section>
+  </main>;
 }
 
 function useClock() {

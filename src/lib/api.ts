@@ -24,3 +24,18 @@ export async function fetchHealth(): Promise<{ mockMode: boolean; astraModel: st
   if (!response.ok) throw new Error("Server unavailable");
   return response.json();
 }
+
+export type PendingApproval = { jobId: string; prompt: string; approval: { id: string; title: string; description: string; risk: string } };
+
+export async function fetchApprovals(token: string): Promise<PendingApproval[]> {
+  const response = await fetch("/api/controller/approvals", { headers: { Authorization: `Bearer ${token}` } });
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
+}
+
+export async function resolveControllerApproval(token: string, item: PendingApproval, approved: boolean): Promise<void> {
+  const response = await fetch(`/api/controller/approvals/${item.jobId}/${item.approval.id}`, {
+    method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ approved })
+  });
+  if (!response.ok) throw new Error(await response.text());
+}
