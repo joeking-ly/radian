@@ -116,6 +116,8 @@ Build direct API tools before relying on visual browser control:
 4. Presentation and document creation
 5. A phone-based approval controller
 
+See [Integration and hardware guide](docs/IMPLEMENTATION-GUIDE.md) for the recommended architecture, implementation sequence, security controls, and screen/projector options.
+
 ## References
 
 - [GPT-6 Astra model](https://developers.openai.com/api/docs/models/gpt-6-astra)
