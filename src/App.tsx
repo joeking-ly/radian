@@ -4,16 +4,16 @@ import { RealtimeClient } from "./lib/realtime";
 import type { Approval, JobEvent, WallCard, WallState } from "./types";
 
 const samplePrompts = [
-  "Prepare today’s production board",
-  "Render the latest Blender scene",
-  "Turn the concept notes into a presentation"
+  { label: "Prepare today’s production board", prompt: "Prepare today’s production board", icon: "board", tone: "orange" },
+  { label: "Render the latest Blender scene", prompt: "Render the latest Blender scene", icon: "render", tone: "violet" },
+  { label: "Turn notes into a presentation", prompt: "Turn the concept notes into a presentation", icon: "slides", tone: "green" }
 ];
 
 export function App() {
   if (window.location.pathname === "/controller") return <Controller />;
   const [state, setState] = useState<WallState>("idle");
   const [jobId, setJobId] = useState<string>();
-  const [message, setMessage] = useState("What are we making?");
+  const [message, setMessage] = useState("Think out loud.");
   const [transcript, setTranscript] = useState("");
   const [card, setCard] = useState<WallCard>();
   const [approval, setApproval] = useState<Approval>();
@@ -22,6 +22,8 @@ export function App() {
   const [mockMode, setMockMode] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("disconnected");
   const [listening, setListening] = useState(false);
+  const [showType, setShowType] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">(() => (localStorage.getItem("radian-theme") as "dark" | "light") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
   const eventSource = useRef<EventSource | undefined>(undefined);
   const realtime = useRef<RealtimeClient | undefined>(undefined);
 
@@ -72,6 +74,11 @@ export function App() {
     return () => { client.disconnect(); eventSource.current?.close(); };
   }, []);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("radian-theme", theme);
+  }, [theme]);
+
   const clock = useClock();
   const activityLabel = useMemo(() => state === "idle" ? "RADIAN" : state.toUpperCase(), [state]);
 
@@ -81,7 +88,7 @@ export function App() {
     setListening(next);
     realtime.current?.setListening(next);
     setState(next ? "listening" : "idle");
-    setMessage(next ? "I’m listening" : "What are we making?");
+    setMessage(next ? "I’m listening" : "Think out loud.");
     if (next) setTranscript("");
   };
 
@@ -100,7 +107,7 @@ export function App() {
           {mockMode && <span className="mode-pill">PREVIEW</span>}
           <span className={`dot ${voiceStatus}`} /> {voiceStatus === "connected" ? "Listening is available" : "Studio is ready"}
         </div>
-        <time>{clock}</time>
+        <div className="header-actions"><button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Use ${theme === "dark" ? "light" : "dark"} mode`}><StudioIcon name={theme === "dark" ? "sun" : "moon"} /></button><time>{clock}</time></div>
       </header>
 
       <section className="stage">
@@ -129,17 +136,33 @@ export function App() {
       </section></div>}
 
       <footer>
-        <form onSubmit={(event) => { event.preventDefault(); startTask(prompt).catch((e) => { setMessage(e.message); setState("error"); }); }}>
-          <input value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe what you’d like to make…" />
-          <button className="send" aria-label="Submit">↗</button>
-        </form>
+        <div className="voice-row">
         <button className={`mic ${listening ? "active" : ""}`} onClick={toggleListening} aria-label="Toggle microphone">
-          <span className="mic-icon">●</span><span>{listening ? "Finished speaking" : "Speak"}</span>
+          <span className="voice-icon"><StudioIcon name="mic" /></span><span><strong>{listening ? "I’m listening" : "Speak"}</strong><small>{listening ? "Tap when you’re finished" : "Start with your voice"}</small></span>
         </button>
-        <div className="suggestions">{samplePrompts.map((item) => <button key={item} onClick={() => startTask(item)}>{item}</button>)}</div>
+        <button className={`type-toggle ${showType ? "active" : ""}`} onClick={() => setShowType((value) => !value)} aria-expanded={showType} aria-label="Type instead"><StudioIcon name="keyboard" /><span>Type instead</span></button>
+        </div>
+        {showType && <form className="type-form" onSubmit={(event) => { event.preventDefault(); startTask(prompt).catch((e) => { setMessage(e.message); setState("error"); }); }}>
+          <input autoFocus value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe what you’d like to make…" />
+          <button className="send" aria-label="Submit">↗</button>
+        </form>}
+        <div className="suggestions">{samplePrompts.map((item) => <button className={`suggestion tone-${item.tone}`} key={item.label} onClick={() => startTask(item.prompt)}><StudioIcon name={item.icon} /><span>{item.label}</span><span className="suggestion-arrow">↗</span></button>)}</div>
       </footer>
     </main>
   );
+}
+
+function StudioIcon({ name }: { name: string }) {
+  const paths: Record<string, React.ReactNode> = {
+    board: <><path d="M4 5.5h16v11H4z"/><path d="M8 20h8M12 16.5V20M7 9h4M7 12.5h7"/></>,
+    render: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4.5 7.8 7.5 4.3 7.5-4.3M12 12.1V21"/></>,
+    slides: <><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M7 8h6M7 11h10"/></>,
+    sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></>,
+    moon: <path d="M20 15.4A8 8 0 0 1 8.6 4a8 8 0 1 0 11.4 11.4Z"/>,
+    mic: <><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></>,
+    keyboard: <><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M7 13.5h.01M10.5 13.5h.01M14 13.5h3.5M8 16h8"/></>
+  };
+  return <svg className="studio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
 }
 
 function Controller() {
