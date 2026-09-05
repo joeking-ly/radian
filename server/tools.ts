@@ -3,7 +3,7 @@ import { z } from "zod";
 import { browserWorkspace } from "./browser.js";
 import { jobs } from "./job-store.js";
 import type { Job, WallCard } from "./types.js";
-import { studioToolDefinitions, executeStudioTool } from "./studio-connectors.js";
+import { availableStudioToolDefinitions, executeStudioTool } from "./studio-connectors.js";
 import { requireApproval } from "./approval.js";
 
 export const toolDefinitions = [
@@ -55,7 +55,7 @@ export const toolDefinitions = [
       }, required: ["title", "description", "risk"], additionalProperties: false
     }, strict: true
   },
-  ...studioToolDefinitions
+  ...availableStudioToolDefinitions()
 ] as const;
 
 const cardSchema = z.object({ title: z.string(), eyebrow: z.string().optional(), body: z.string(), bullets: z.array(z.string()).default([]), sourceUrl: z.string().optional() });

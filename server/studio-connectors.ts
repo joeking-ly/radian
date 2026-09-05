@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { google } from "googleapis";
 import { WebClient } from "@slack/web-api";
@@ -25,6 +26,20 @@ export const studioToolDefinitions = [
   { type: "function", name: "bambu_print", description: "Upload a sliced 3MF to the configured Bambu printer and start it after mandatory approval.", parameters: object({ file: string, plateGcode: string, useAms: { type: "boolean" }, timelapse: { type: "boolean" } }), strict: true },
   { type: "function", name: "studio_webhook", description: "Call an operator-configured studio system by connector and action name. Mutating connectors require approval.", parameters: object({ connector: string, action: string, input: { type: "object", additionalProperties: true } }), strict: false }
 ] as const;
+
+export function availableStudioToolDefinitions() {
+  const status = connectorStatus();
+  return studioToolDefinitions.filter((tool) => {
+    if (tool.name === "connector_status") return true;
+    if (tool.name.startsWith("google_")) return status.googleWorkspace;
+    if (tool.name.startsWith("slack_")) return status.slack;
+    if (tool.name.startsWith("blender_")) return status.blender;
+    if (tool.name === "bambu_slice") return status.bambuStudio;
+    if (tool.name === "bambu_print") return status.bambuPrinter;
+    if (tool.name === "studio_webhook") return status.custom.length > 0;
+    return false;
+  });
+}
 
 const inputSchema = z.string().min(1);
 
@@ -79,8 +94,8 @@ export function connectorStatus() {
   return {
     googleWorkspace: Boolean(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET && config.GOOGLE_REFRESH_TOKEN),
     slack: Boolean(config.SLACK_USER_TOKEN),
-    blender: Boolean(config.BLENDER_PATH),
-    bambuStudio: Boolean(config.BAMBU_STUDIO_PATH),
+    blender: existsSync(config.BLENDER_PATH),
+    bambuStudio: existsSync(config.BAMBU_STUDIO_PATH),
     bambuPrinter: Boolean(config.BAMBU_PRINTER_HOST && config.BAMBU_PRINTER_SERIAL && config.BAMBU_ACCESS_CODE),
     custom: customConnectors().map(({ name, mutating }) => ({ name, mutating }))
   };

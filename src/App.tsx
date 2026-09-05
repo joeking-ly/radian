@@ -141,9 +141,9 @@ export function App() {
       </header>
 
       <section className="stage">
-        {screenshot && <div className="browser-frame"><img src={screenshot} alt="Astra-controlled browser" /></div>}
+        {screenshot && <div className="browser-frame"><img src={screenshot} alt="Radian-controlled browser" /></div>}
         {card && <article className="result-card">
-          <span>{card.eyebrow ?? "ASTRA RESULT"}</span>
+          <span>{card.eyebrow ?? "RADIAN RESULT"}</span>
           <h1>{card.title}</h1>
           <p>{card.body}</p>
           {card.bullets && <ul>{card.bullets.map((item) => <li key={item}>{item}</li>)}</ul>}
@@ -151,7 +151,7 @@ export function App() {
         </article>}
         {!card && !screenshot && <div className="focus">
           <div className={`orb ${listening ? "active" : ""}`}><div /><div /><div /></div>
-          <p className="presence">YOUR STUDIO, IN ONE PLACE</p>
+          <p className="presence">{state === "working" || state === "planning" ? "IN PROGRESS" : state === "error" ? "NEEDS ATTENTION" : "YOUR STUDIO, IN ONE PLACE"}</p>
           <h1>{message}</h1>
           {transcript && <p className="transcript">“{transcript}”</p>}
           {!transcript && state === "idle" && <p className="quiet-copy">Speak naturally, or start with a thought below.</p>}

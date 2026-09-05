@@ -10,7 +10,7 @@ export async function createRealtimeSession(sdp: string): Promise<Response> {
     audio: { output: { voice: config.REALTIME_VOICE }, input: { transcription: { model: "gpt-live-transcribe" }, turn_detection: { type: "server_vad" } } },
     tools: [{
       type: "function", name: "submit_wall_task",
-      description: "Send a substantive work request to GPT-6 Astra and display its progress on the wall.",
+      description: "Send a substantive work request to Radian and display its progress on the wall.",
       parameters: { type: "object", properties: { prompt: { type: "string" } }, required: ["prompt"], additionalProperties: false }
     }],
     tool_choice: "auto"
