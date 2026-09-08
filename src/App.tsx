@@ -21,6 +21,7 @@ export function App() {
   const [screenshot, setScreenshot] = useState<string>();
   const [prompt, setPrompt] = useState("");
   const [mockMode, setMockMode] = useState(false);
+  const [astraModel, setAstraModel] = useState("");
   const [voiceStatus, setVoiceStatus] = useState("disconnected");
   const [listening, setListening] = useState(false);
   const [showType, setShowType] = useState(false);
@@ -69,7 +70,7 @@ export function App() {
   };
 
   useEffect(() => {
-    fetchHealth().then((health) => setMockMode(health.mockMode)).catch(() => setState("error"));
+    fetchHealth().then((health) => { setMockMode(health.mockMode); setAstraModel(health.astraModel); }).catch(() => setState("error"));
     const client = new RealtimeClient({
       onState: setVoiceStatus,
       onTranscript: (delta) => setTranscript((value) => value + delta),
@@ -98,6 +99,7 @@ export function App() {
 
   const clock = useClock();
   const activityLabel = useMemo(() => state === "idle" ? "RADIAN" : state.toUpperCase(), [state]);
+  const isThinking = state === "planning" || state === "working";
 
   const beginListening = async () => {
     wakeWord.current?.stop();
@@ -136,6 +138,7 @@ export function App() {
         <div className="brand"><span className="brand-mark" />{activityLabel}<span className="studio-name">PRODUCTION STUDIO</span></div>
         <div className="system-status">
           {mockMode && <span className="mode-pill">PREVIEW</span>}
+          {!mockMode && astraModel && <span className="model-pill" title={`Task model: ${astraModel}`}>{astraModel === "gpt-6-astra" ? "GPT-6 ASTRA" : astraModel.toUpperCase()}</span>}
           <span className={`dot ${wakeStatus === "ready" ? "connected" : wakeStatus === "error" || wakeStatus === "unsupported" ? "error" : voiceStatus}`} /> {wakeStatus === "ready" ? "Say “Hello Radian”" : wakeStatus === "unsupported" ? "Wake word needs Chrome or Edge" : wakeStatus === "error" ? "Microphone permission needed" : voiceStatus === "connected" ? "Listening is available" : "Studio is ready"}
         </div>
         <div className="header-actions"><button className="setup-button" onClick={() => setShowOnboarding(true)}><StudioIcon name="spark" /><span>Setup</span></button><button className={`theme-toggle wake-toggle ${wakeEnabled ? "active" : ""} ${wakeStatus === "error" || wakeStatus === "unsupported" ? "error" : ""}`} onClick={() => setWakeEnabled((value) => !value)} aria-pressed={wakeEnabled} aria-label={wakeEnabled ? "Disable Hello Radian wake word" : "Enable Hello Radian wake word"} title={wakeStatus === "unsupported" ? "Wake word is not supported by this browser" : wakeStatus === "error" ? "Check microphone permission" : wakeEnabled ? "Wake word on" : "Enable wake word (microphone permission required)"}><StudioIcon name="waves" /></button><button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Use ${theme === "dark" ? "light" : "dark"} mode`}><StudioIcon name={theme === "dark" ? "sun" : "moon"} /></button><time>{clock}</time></div>
@@ -151,11 +154,11 @@ export function App() {
           {card.sourceUrl && <small>{card.sourceUrl}</small>}
         </article>}
         {!card && !screenshot && <div className="focus">
-          <div className={`orb ${listening ? "active" : ""}`}><div /><div /><div /></div>
-          <p className="presence">{state === "working" || state === "planning" ? "IN PROGRESS" : state === "error" ? "NEEDS ATTENTION" : "YOUR STUDIO, IN ONE PLACE"}</p>
-          <h1>{message}</h1>
-          {transcript && <p className="transcript">“{transcript}”</p>}
-          {!transcript && state === "idle" && <p className="quiet-copy">Speak naturally, or start with a thought below.</p>}
+          <div className={`orb ${listening || isThinking ? "active" : ""} ${isThinking ? "thinking" : ""}`}><div /><div /><div /></div>
+          {!isThinking && <><p className="presence">{state === "error" ? "NEEDS ATTENTION" : "YOUR STUDIO, IN ONE PLACE"}</p>
+            <h1>{message}</h1>
+            {transcript && <p className="transcript">“{transcript}”</p>}
+            {!transcript && state === "idle" && <p className="quiet-copy">Speak naturally, or start with a thought below.</p>}</>}
         </div>}
       </section>
 
