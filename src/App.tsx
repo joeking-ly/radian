@@ -34,6 +34,7 @@ export function App() {
   const realtime = useRef<RealtimeClient | undefined>(undefined);
   const wakeWord = useRef<WakeWordListener | undefined>(undefined);
   const beginListeningRef = useRef<() => Promise<void>>(async () => {});
+  const commandRef = useRef<(action: string) => Promise<string>>(async () => "That control is not ready yet.");
 
   const startTask = async (taskPrompt: string) => {
     if (!taskPrompt.trim()) return "No task was supplied.";
@@ -76,6 +77,7 @@ export function App() {
       onState: setVoiceStatus,
       onTranscript: (delta) => setTranscript((value) => value + delta),
       onTask: startTask,
+      onCommand: (action) => commandRef.current(action),
       onSpeaking: setRadianSpeaking,
       onError: (error) => { console.error(error); setMessage(friendlyError(error)); setState("error"); }
     });
@@ -131,6 +133,28 @@ export function App() {
     if (!jobId) return;
     await decideApproval(jobId, approved);
     setApproval(undefined);
+  };
+
+  commandRef.current = async (action: string) => {
+    if (action === "open_setup") { setShowOnboarding(true); return "Setup is open."; }
+    if (action === "close_setup") { setShowOnboarding(false); return "Setup is closed."; }
+    if (action === "next_setup" || action === "previous_setup") {
+      if (!showOnboarding) setShowOnboarding(true);
+      window.setTimeout(() => window.dispatchEvent(new CustomEvent("radian-setup-command", { detail: action })), showOnboarding ? 0 : 50);
+      return action === "next_setup" ? "Moved to the next setup step." : "Moved to the previous setup step.";
+    }
+    if (action === "light_mode" || action === "dark_mode") { setTheme(action === "light_mode" ? "light" : "dark"); return `${action === "light_mode" ? "Light" : "Dark"} mode is on.`; }
+    if (action === "enable_wake_word" || action === "disable_wake_word") { setWakeEnabled(action === "enable_wake_word"); return `Wake word is ${action === "enable_wake_word" ? "on" : "off"}.`; }
+    if (action === "approve" || action === "reject") {
+      if (!approval || !jobId) return "There is no action waiting for approval.";
+      await resolveApproval(action === "approve"); return action === "approve" ? "Approved. Radian is continuing." : "Rejected.";
+    }
+    if (action === "open_google_setup" || action === "open_dropbox_setup") {
+      const url = action === "open_google_setup" ? "https://console.cloud.google.com/apis/dashboard" : "https://www.dropbox.com/developers/apps";
+      const opened = window.open(url, "_blank", "noopener,noreferrer");
+      return opened ? "I opened the setup page in a new tab." : "The browser blocked the new tab. Please select the setup link once, then voice commands can guide you.";
+    }
+    return "I don’t recognize that interface command.";
   };
 
   return (
@@ -219,7 +243,7 @@ function StudioIcon({ name }: { name: string }) {
 }
 
 const onboardingSteps = [
-  { title: "Welcome to Radian", copy: "I’ll help you connect the places where your studio already works. You stay in control: every account consent happens on the provider’s page, and Radian never displays your secrets.", detail: "Start with the services you need today. You can return to Setup at any time." },
+  { title: "Welcome to Radian", copy: "I’ll help you connect the places where your studio already works. You stay in control: every account consent happens on the provider’s page, and Radian never displays your secrets.", detail: "You can say next, back, close setup, use dark mode, or open Google setup. Return here anytime by saying open setup." },
   { title: "Connect Google Workspace", copy: "Google Drive, Docs, and Slides use OAuth. Create a Google Cloud project, enable those three APIs, then create an OAuth client and refresh token. Add the three values to your private dot env file and restart Radian.", detail: "Required values: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN.", link: "https://console.cloud.google.com/apis/dashboard", linkLabel: "Open Google Cloud" },
   { title: "Connect Dropbox or another system", copy: "Dropbox can be connected through an operator-owned HTTPS bridge. Create an app in Dropbox, give it only the permissions you need, and place its token in your bridge—not in the browser. Then register that bridge in CUSTOM_CONNECTORS_JSON.", detail: "Radian’s current Dropbox path is the custom connector bridge; a one-click Dropbox OAuth connector is not included yet.", link: "https://www.dropbox.com/developers/apps", linkLabel: "Open Dropbox App Console" },
   { title: "Choose your studio folder", copy: "Choose a folder to confirm this browser can access it. For Blender, Bambu Studio, and server-side jobs, also set STUDIO_ROOT in your private dot env file to that folder’s full path, then restart Radian.", detail: "Radian restricts production jobs to this workspace so tasks cannot wander through the rest of your computer.", directory: true },
@@ -237,6 +261,11 @@ function Onboarding({ onClose }: { onClose: () => void }) {
   const current = onboardingSteps[step];
 
   useEffect(() => { fetchConnectorStatus().then(setStatus).catch(() => undefined); }, []);
+  useEffect(() => {
+    const handle = (event: Event) => setStep((value) => (event as CustomEvent<string>).detail === "next_setup" ? Math.min(value + 1, onboardingSteps.length - 1) : Math.max(value - 1, 0));
+    window.addEventListener("radian-setup-command", handle);
+    return () => window.removeEventListener("radian-setup-command", handle);
+  }, []);
   useEffect(() => () => { window.speechSynthesis?.cancel(); audio.current?.pause(); }, []);
 
   const speak = async () => {

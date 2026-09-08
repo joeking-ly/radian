@@ -12,6 +12,7 @@ This is a functional prototype, not an OpenAI product or an attempt to reproduce
 - Push-to-talk speech-to-speech session using `gpt-realtime-2.1` over WebRTC
 - Optional “Hello Radian” wake word using the browser speech-recognition service
 - First-run, voice-led setup for accounts, local folders, permissions, and connector status
+- Voice commands for setup navigation, themes, wake-word settings, links, and approvals
 - Voice handoff to `gpt-6-astra` through the Responses API
 - Persistent isolated Chromium browser with public-network restrictions
 - Live job updates over server-sent events

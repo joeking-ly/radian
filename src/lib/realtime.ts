@@ -2,6 +2,7 @@ type RealtimeHandlers = {
   onState: (state: "connecting" | "connected" | "disconnected" | "error") => void;
   onTranscript: (text: string) => void;
   onTask: (prompt: string) => Promise<string>;
+  onCommand: (action: string) => Promise<string>;
   onSpeaking: (speaking: boolean) => void;
   onError: (message: string) => void;
 };
@@ -92,11 +93,11 @@ export class RealtimeClient {
     if (event.type === "response.output_audio.delta" || event.type === "response.audio.delta") this.handlers.onSpeaking(true);
     if (event.type === "response.output_audio.done" || event.type === "response.audio.done" || event.type === "response.done") this.handlers.onSpeaking(false);
 
-    if (event.type === "response.function_call_arguments.done" && event.name === "submit_wall_task") {
+    if (event.type === "response.function_call_arguments.done" && (event.name === "submit_wall_task" || event.name === "control_interface")) {
       const callId = event.call_id as string;
       try {
         const args = JSON.parse(this.pendingArgs.get(callId) ?? event.arguments ?? "{}");
-        const result = await this.handlers.onTask(args.prompt);
+        const result = event.name === "submit_wall_task" ? await this.handlers.onTask(args.prompt) : await this.handlers.onCommand(args.action);
         this.send({
           type: "conversation.item.create",
           item: { type: "function_call_output", call_id: callId, output: result }
