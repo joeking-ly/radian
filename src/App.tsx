@@ -24,6 +24,7 @@ export function App() {
   const [astraModel, setAstraModel] = useState("");
   const [voiceStatus, setVoiceStatus] = useState("disconnected");
   const [listening, setListening] = useState(false);
+  const [radianSpeaking, setRadianSpeaking] = useState(false);
   const [showType, setShowType] = useState(false);
   const [wakeEnabled, setWakeEnabled] = useState(() => localStorage.getItem("radian-wake-word") === "true");
   const [wakeStatus, setWakeStatus] = useState<"off" | "ready" | "unsupported" | "error">("off");
@@ -75,6 +76,7 @@ export function App() {
       onState: setVoiceStatus,
       onTranscript: (delta) => setTranscript((value) => value + delta),
       onTask: startTask,
+      onSpeaking: setRadianSpeaking,
       onError: (error) => { console.error(error); setMessage(friendlyError(error)); setState("error"); }
     });
     realtime.current = client;
@@ -154,7 +156,7 @@ export function App() {
           {card.sourceUrl && <small>{card.sourceUrl}</small>}
         </article>}
         {!card && !screenshot && <div className="focus">
-          <div className={`orb ${listening || isThinking ? "active" : ""} ${isThinking ? "thinking" : ""}`}><div /><div /><div /></div>
+          <div className={`orb ${listening || radianSpeaking || isThinking ? "active" : ""} ${isThinking ? "thinking" : ""}`}><div /><div /><div /></div>
           {!isThinking && <><p className="presence">{state === "error" ? "NEEDS ATTENTION" : "YOUR STUDIO, IN ONE PLACE"}</p>
             <h1>{message}</h1>
             {transcript && <p className="transcript">“{transcript}”</p>}
@@ -174,7 +176,7 @@ export function App() {
       <footer>
         <div className="voice-row">
         <button className={`mic ${listening ? "active" : ""}`} onClick={toggleListening} aria-label="Toggle microphone">
-          <span className="voice-icon"><StudioIcon name="mic" /></span><span><strong>{listening ? "I’m listening" : "Speak"}</strong><small>{listening ? "Tap when you’re finished" : "Start with your voice"}</small></span>
+          <span className="voice-icon"><StudioIcon name={radianSpeaking ? "waves" : "mic"} /></span><span><strong>{radianSpeaking ? "Radian is speaking" : listening ? "I’m listening" : "Speak"}</strong><small>{radianSpeaking ? "You can interrupt naturally" : listening ? "Tap when you’re finished" : "Start with your voice"}</small></span>
         </button>
         <button className={`type-toggle ${showType ? "active" : ""}`} onClick={() => setShowType((value) => !value)} aria-expanded={showType} aria-label="Type instead"><StudioIcon name="keyboard" /><span>Type instead</span></button>
         </div>

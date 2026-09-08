@@ -2,6 +2,7 @@ type RealtimeHandlers = {
   onState: (state: "connecting" | "connected" | "disconnected" | "error") => void;
   onTranscript: (text: string) => void;
   onTask: (prompt: string) => Promise<string>;
+  onSpeaking: (speaking: boolean) => void;
   onError: (message: string) => void;
 };
 
@@ -20,7 +21,14 @@ export class RealtimeClient {
       const pc = new RTCPeerConnection();
       const audio = document.createElement("audio");
       audio.autoplay = true;
-      pc.ontrack = (event) => (audio.srcObject = event.streams[0]);
+      audio.setAttribute("playsinline", "true");
+      audio.style.display = "none";
+      document.body.appendChild(audio);
+      pc.ontrack = async (event) => {
+        audio.srcObject = event.streams[0];
+        try { await audio.play(); }
+        catch (error) { this.handlers.onError(`Radian received audio but the browser blocked playback: ${error instanceof Error ? error.message : "playback unavailable"}`); }
+      };
 
       if (!navigator.mediaDevices?.getUserMedia) throw new Error("Microphone access is not supported in this browser. Open Radian in Chrome or Edge.");
       const stream = await withTimeout(navigator.mediaDevices.getUserMedia({
@@ -67,6 +75,7 @@ export class RealtimeClient {
     this.dc?.close();
     this.pc?.close();
     this.audio?.remove();
+    this.handlers.onSpeaking(false);
     this.handlers.onState("disconnected");
   }
 
@@ -79,6 +88,9 @@ export class RealtimeClient {
       const key = event.call_id as string;
       this.pendingArgs.set(key, (this.pendingArgs.get(key) ?? "") + (event.delta ?? ""));
     }
+
+    if (event.type === "response.output_audio.delta" || event.type === "response.audio.delta") this.handlers.onSpeaking(true);
+    if (event.type === "response.output_audio.done" || event.type === "response.audio.done" || event.type === "response.done") this.handlers.onSpeaking(false);
 
     if (event.type === "response.function_call_arguments.done" && event.name === "submit_wall_task") {
       const callId = event.call_id as string;

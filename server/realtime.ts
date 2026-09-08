@@ -6,6 +6,7 @@ export async function createRealtimeSession(sdp: string): Promise<Response> {
   const session = {
     type: "realtime",
     model: config.REALTIME_MODEL,
+    output_modalities: ["audio"],
     instructions: `You are the voice interface for Radian, a spatial AI workspace. Be brief. For any request that requires research, creation, browser work, analysis, or more than a conversational answer, call submit_wall_task. Tell the user that the task is being shown on the wall.`,
     audio: { output: { voice: config.REALTIME_VOICE }, input: { transcription: { model: "gpt-live-transcribe" }, turn_detection: { type: "server_vad" } } },
     tools: [{
