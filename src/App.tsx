@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createJob, decideApproval, fetchApprovals, fetchConnectorStatus, fetchHealth, resolveControllerApproval, type ConnectorStatus, type PendingApproval } from "./lib/api";
+import { createJob, decideApproval, fetchApprovals, fetchConnectorStatus, fetchHealth, fetchOnboardingSpeech, resolveControllerApproval, type ConnectorStatus, type PendingApproval } from "./lib/api";
 import { RealtimeClient } from "./lib/realtime";
 import { WakeWordListener } from "./lib/wake-word";
 import type { Approval, JobEvent, WallCard, WallState } from "./types";
@@ -221,26 +221,38 @@ function Onboarding({ onClose }: { onClose: () => void }) {
   const [speaking, setSpeaking] = useState(false);
   const [folderName, setFolderName] = useState("");
   const [status, setStatus] = useState<ConnectorStatus>();
+  const [voiceError, setVoiceError] = useState("");
+  const audio = useRef<HTMLAudioElement | undefined>(undefined);
   const current = onboardingSteps[step];
 
   useEffect(() => { fetchConnectorStatus().then(setStatus).catch(() => undefined); }, []);
-  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+  useEffect(() => () => { window.speechSynthesis?.cancel(); audio.current?.pause(); }, []);
 
-  const speak = () => {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(`${current.title}. ${current.copy} ${current.detail}`);
-    utterance.rate = .96;
-    utterance.onend = () => setSpeaking(false);
-    utterance.onerror = () => setSpeaking(false);
-    setSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+  const speak = async () => {
+    const text = `${current.title}. ${current.copy} ${current.detail}`;
+    setVoiceError(""); setSpeaking(true);
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = .96;
+      utterance.onend = () => setSpeaking(false);
+      utterance.onerror = () => setSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+      return;
+    }
+    try {
+      const url = URL.createObjectURL(await fetchOnboardingSpeech(text));
+      const player = new Audio(url); audio.current = player;
+      player.onended = () => { URL.revokeObjectURL(url); setSpeaking(false); };
+      player.onerror = () => { URL.revokeObjectURL(url); setVoiceError("Voice playback isn’t available in this browser."); setSpeaking(false); };
+      await player.play();
+    } catch (error) { setVoiceError(error instanceof Error ? error.message : "Voice playback is unavailable."); setSpeaking(false); }
   };
 
-  useEffect(() => { if (speaking) speak(); }, [step]);
+  useEffect(() => { if (speaking) { audio.current?.pause(); void speak(); } }, [step]);
 
   const close = (complete = false) => {
-    window.speechSynthesis?.cancel();
+    window.speechSynthesis?.cancel(); audio.current?.pause();
     if (complete) localStorage.setItem("radian-onboarding-complete", "true");
     onClose();
   };
@@ -258,9 +270,9 @@ function Onboarding({ onClose }: { onClose: () => void }) {
       <div className="onboarding-top"><div><span className="onboarding-kicker">GUIDED SETUP · {step + 1} OF {onboardingSteps.length}</span><div className="onboarding-progress"><i style={{ width: `${((step + 1) / onboardingSteps.length) * 100}%` }} /></div></div><button className="onboarding-close" onClick={() => close()} aria-label="Close setup">×</button></div>
       <div className="onboarding-icon"><StudioIcon name={step === 4 ? "waves" : "spark"} /></div>
       {connectionLabel && <span className="connected-badge">✓ {connectionLabel}</span>}
-      <h2 id="onboarding-title">{current.title}</h2><p>{current.copy}</p><small>{current.detail}</small>
+      <h2 id="onboarding-title">{current.title}</h2><p>{current.copy}</p><small>{current.detail}</small>{voiceError && <p className="voice-error">{voiceError}</p>}
       <div className="onboarding-actions">
-        <button className={`narrate ${speaking ? "active" : ""}`} onClick={() => speaking ? (window.speechSynthesis.cancel(), setSpeaking(false)) : speak()}><StudioIcon name={speaking ? "waves" : "mic"} />{speaking ? "Stop voice" : "Listen to Radian"}</button>
+        <button className={`narrate ${speaking ? "active" : ""}`} onClick={() => speaking ? (window.speechSynthesis?.cancel(), audio.current?.pause(), setSpeaking(false)) : void speak()}><StudioIcon name={speaking ? "waves" : "mic"} />{speaking ? "Stop voice" : "Listen to Radian"}</button>
         {"link" in current && <a className="setup-link" href={current.link} target="_blank" rel="noreferrer">{current.linkLabel} ↗</a>}
         {"directory" in current && <button className="setup-link" onClick={chooseFolder}>{folderName || "Choose a folder"}</button>}
       </div>

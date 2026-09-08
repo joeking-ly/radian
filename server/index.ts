@@ -25,6 +25,18 @@ app.post("/api/realtime/session", express.text({ type: ["application/sdp", "text
 
 app.use(express.json({ limit: "1mb" }));
 
+app.post("/api/onboarding/speech", async (req, res) => {
+  const { text } = z.object({ text: z.string().trim().min(1).max(2_000) }).parse(req.body);
+  if (!config.OPENAI_API_KEY) return res.status(503).json({ error: "Add OPENAI_API_KEY to .env to enable Radian voice." });
+  const upstream = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "gpt-4o-mini-tts", voice: "marin", input: text, instructions: "Speak warmly, calmly, and helpfully, like a thoughtful studio guide." })
+  });
+  if (!upstream.ok) return res.status(upstream.status).json({ error: `Voice service unavailable (${upstream.status})` });
+  res.type(upstream.headers.get("content-type") ?? "audio/mpeg").send(Buffer.from(await upstream.arrayBuffer()));
+});
+
 app.post("/api/jobs", (req, res) => {
   const input = z.object({ prompt: z.string().trim().min(2).max(8_000) }).parse(req.body);
   const job = jobs.create(input.prompt);

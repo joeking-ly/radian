@@ -40,6 +40,16 @@ export async function fetchConnectorStatus(): Promise<ConnectorStatus> {
   return response.json();
 }
 
+export async function fetchOnboardingSpeech(text: string): Promise<Blob> {
+  const response = await fetch("/api/onboarding/speech", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
+  });
+  if (!response.ok) throw new Error(await response.text());
+  return response.blob();
+}
+
 export type PendingApproval = { jobId: string; prompt: string; approval: { id: string; title: string; description: string; risk: string } };
 
 export async function fetchApprovals(token: string): Promise<PendingApproval[]> {
