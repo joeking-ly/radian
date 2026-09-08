@@ -187,9 +187,15 @@ export function App() {
 
 function friendlyError(message: string): string {
   if (/invalid schema|invalid_function_parameters/i.test(message)) return "A studio tool needs an update.";
+  if (/Executable doesn't exist|playwright install/i.test(message)) return "Browser support is not installed. Run: npx playwright install chromium";
+  if (/invalid_grant|invalid credentials|unauthorized_client/i.test(message)) return "Google needs to be reconnected in Setup.";
+  if (/has not been used|API.*disabled|accessNotConfigured/i.test(message)) return "A required Google API is not enabled yet. Open Setup to finish connecting Google.";
+  if (/429|rate.?limit|quota/i.test(message)) return "The connected service has reached its current usage limit. Try again shortly.";
+  if (/401|incorrect api key|invalid api key/i.test(message)) return "The OpenAI API key needs attention. Check the private .env file and restart Radian.";
   if (/microphone|permission|notallowederror/i.test(message)) return "Microphone access is needed. Check your browser permissions and try again.";
   if (/model|access|permission/i.test(message)) return "This OpenAI project may not have access to the selected voice or workspace model.";
-  return "Something needs attention. Check the server log for details.";
+  const concise = message.replace(/\s+/g, " ").slice(0, 180);
+  return concise ? `Radian couldn’t complete that: ${concise}` : "Radian couldn’t complete that task. Try again or open Setup to check connections.";
 }
 
 function StudioIcon({ name }: { name: string }) {
