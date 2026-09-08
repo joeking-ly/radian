@@ -11,6 +11,7 @@ This is a functional prototype, not an OpenAI product or an attempt to reproduce
 - Full-screen wall interface with idle, listening, planning, working, approval, presenting, and error states
 - Push-to-talk speech-to-speech session using `gpt-realtime-2.1` over WebRTC
 - Optional “Hello Radian” wake word using the browser speech-recognition service
+- First-run, voice-led setup for accounts, local folders, permissions, and connector status
 - Voice handoff to `gpt-6-astra` through the Responses API
 - Persistent isolated Chromium browser with public-network restrictions
 - Live job updates over server-sent events
@@ -86,6 +87,8 @@ Restart `npm run dev`. The API key stays on the server and is never returned to 
 5. Use the text field as a fallback during development.
 
 To use hands-free activation, select the wave icon once and grant microphone permission. While armed, saying “Hello Radian” or using “Radian” in a phrase starts the full voice session. Browser speech-recognition availability varies, and recognition may be processed by the browser vendor; the status bar reports when wake listening is active.
+
+On first launch, Radian opens a guided setup walkthrough. Select **Listen to Radian** for spoken instructions, use the provider links to configure OAuth or app credentials, and use **Choose a folder** to confirm browser folder access. Return to it later with **Setup** in the header. Account secrets and the server-side `STUDIO_ROOT` path belong in the private `.env` file; the walkthrough never asks users to paste secrets into the browser.
 
 ## Security boundaries
 

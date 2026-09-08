@@ -25,6 +25,21 @@ export async function fetchHealth(): Promise<{ mockMode: boolean; astraModel: st
   return response.json();
 }
 
+export type ConnectorStatus = {
+  googleWorkspace: boolean;
+  slack: boolean;
+  blender: boolean;
+  bambuStudio: boolean;
+  bambuPrinter: boolean;
+  custom: Array<{ name: string; mutating: boolean }>;
+};
+
+export async function fetchConnectorStatus(): Promise<ConnectorStatus> {
+  const response = await fetch("/api/connectors/status");
+  if (!response.ok) throw new Error("Connector status unavailable");
+  return response.json();
+}
+
 export type PendingApproval = { jobId: string; prompt: string; approval: { id: string; title: string; description: string; risk: string } };
 
 export async function fetchApprovals(token: string): Promise<PendingApproval[]> {

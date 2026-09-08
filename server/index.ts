@@ -6,6 +6,7 @@ import { config } from "./config.js";
 import { jobs } from "./job-store.js";
 import { runAstraJob } from "./astra.js";
 import { createRealtimeSession } from "./realtime.js";
+import { connectorStatus } from "./studio-connectors.js";
 
 const app = express();
 const root = path.resolve(process.cwd());
@@ -13,6 +14,7 @@ app.use(cors({ origin: config.origins }));
 app.use("/artifacts", express.static(path.join(root, "artifacts")));
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, mockMode: config.mockMode, astraModel: config.ASTRA_MODEL }));
+app.get("/api/connectors/status", (_req, res) => res.json(connectorStatus()));
 
 app.post("/api/realtime/session", express.text({ type: ["application/sdp", "text/plain"], limit: "1mb" }), async (req, res) => {
   try {

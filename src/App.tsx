@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createJob, decideApproval, fetchApprovals, fetchHealth, resolveControllerApproval, type PendingApproval } from "./lib/api";
+import { createJob, decideApproval, fetchApprovals, fetchConnectorStatus, fetchHealth, resolveControllerApproval, type ConnectorStatus, type PendingApproval } from "./lib/api";
 import { RealtimeClient } from "./lib/realtime";
 import { WakeWordListener } from "./lib/wake-word";
 import type { Approval, JobEvent, WallCard, WallState } from "./types";
@@ -27,6 +27,7 @@ export function App() {
   const [wakeEnabled, setWakeEnabled] = useState(() => localStorage.getItem("radian-wake-word") === "true");
   const [wakeStatus, setWakeStatus] = useState<"off" | "ready" | "unsupported" | "error">("off");
   const [theme, setTheme] = useState<"dark" | "light">(() => (localStorage.getItem("radian-theme") as "dark" | "light") || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
+  const [showOnboarding, setShowOnboarding] = useState(() => localStorage.getItem("radian-onboarding-complete") !== "true");
   const eventSource = useRef<EventSource | undefined>(undefined);
   const realtime = useRef<RealtimeClient | undefined>(undefined);
   const wakeWord = useRef<WakeWordListener | undefined>(undefined);
@@ -137,7 +138,7 @@ export function App() {
           {mockMode && <span className="mode-pill">PREVIEW</span>}
           <span className={`dot ${wakeStatus === "ready" ? "connected" : wakeStatus === "error" || wakeStatus === "unsupported" ? "error" : voiceStatus}`} /> {wakeStatus === "ready" ? "Say “Hello Radian”" : wakeStatus === "unsupported" ? "Wake word needs Chrome or Edge" : wakeStatus === "error" ? "Microphone permission needed" : voiceStatus === "connected" ? "Listening is available" : "Studio is ready"}
         </div>
-        <div className="header-actions"><button className={`theme-toggle wake-toggle ${wakeEnabled ? "active" : ""} ${wakeStatus === "error" || wakeStatus === "unsupported" ? "error" : ""}`} onClick={() => setWakeEnabled((value) => !value)} aria-pressed={wakeEnabled} aria-label={wakeEnabled ? "Disable Hello Radian wake word" : "Enable Hello Radian wake word"} title={wakeStatus === "unsupported" ? "Wake word is not supported by this browser" : wakeStatus === "error" ? "Check microphone permission" : wakeEnabled ? "Wake word on" : "Enable wake word (microphone permission required)"}><StudioIcon name="waves" /></button><button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Use ${theme === "dark" ? "light" : "dark"} mode`}><StudioIcon name={theme === "dark" ? "sun" : "moon"} /></button><time>{clock}</time></div>
+        <div className="header-actions"><button className="setup-button" onClick={() => setShowOnboarding(true)}><StudioIcon name="spark" /><span>Setup</span></button><button className={`theme-toggle wake-toggle ${wakeEnabled ? "active" : ""} ${wakeStatus === "error" || wakeStatus === "unsupported" ? "error" : ""}`} onClick={() => setWakeEnabled((value) => !value)} aria-pressed={wakeEnabled} aria-label={wakeEnabled ? "Disable Hello Radian wake word" : "Enable Hello Radian wake word"} title={wakeStatus === "unsupported" ? "Wake word is not supported by this browser" : wakeStatus === "error" ? "Check microphone permission" : wakeEnabled ? "Wake word on" : "Enable wake word (microphone permission required)"}><StudioIcon name="waves" /></button><button className="theme-toggle" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={`Use ${theme === "dark" ? "light" : "dark"} mode`}><StudioIcon name={theme === "dark" ? "sun" : "moon"} /></button><time>{clock}</time></div>
       </header>
 
       <section className="stage">
@@ -164,6 +165,8 @@ export function App() {
         <div><button className="secondary" onClick={() => resolveApproval(false)}>Cancel</button>
         <button className="primary" onClick={() => resolveApproval(true)}>Approve</button></div>
       </section></div>}
+
+      {showOnboarding && <Onboarding onClose={() => setShowOnboarding(false)} />}
 
       <footer>
         <div className="voice-row">
@@ -198,9 +201,72 @@ function StudioIcon({ name }: { name: string }) {
     moon: <path d="M20 15.4A8 8 0 0 1 8.6 4a8 8 0 1 0 11.4 11.4Z"/>,
     mic: <><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></>,
     keyboard: <><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M7 13.5h.01M10.5 13.5h.01M14 13.5h3.5M8 16h8"/></>,
-    waves: <><path d="M8.5 8.5a5 5 0 0 0 0 7M5.5 5.5a9.2 9.2 0 0 0 0 13M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9.2 9.2 0 0 1 0 13"/><circle cx="12" cy="12" r="2"/></>
+    waves: <><path d="M8.5 8.5a5 5 0 0 0 0 7M5.5 5.5a9.2 9.2 0 0 0 0 13M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9.2 9.2 0 0 1 0 13"/><circle cx="12" cy="12" r="2"/></>,
+    spark: <><path d="m12 3 1.25 4.1L17 9l-3.75 1.9L12 15l-1.25-4.1L7 9l3.75-1.9z"/><path d="m19 15 .7 2.3L22 18.5l-2.3 1.2L19 22l-.7-2.3-2.3-1.2 2.3-1.2zM5 3l.6 2L7.5 6 5.6 7 5 9l-.6-2L2.5 6l1.9-1z"/></>
   };
   return <svg className="studio-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+}
+
+const onboardingSteps = [
+  { title: "Welcome to Radian", copy: "I’ll help you connect the places where your studio already works. You stay in control: every account consent happens on the provider’s page, and Radian never displays your secrets.", detail: "Start with the services you need today. You can return to Setup at any time." },
+  { title: "Connect Google Workspace", copy: "Google Drive, Docs, and Slides use OAuth. Create a Google Cloud project, enable those three APIs, then create an OAuth client and refresh token. Add the three values to your private dot env file and restart Radian.", detail: "Required values: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN.", link: "https://console.cloud.google.com/apis/dashboard", linkLabel: "Open Google Cloud" },
+  { title: "Connect Dropbox or another system", copy: "Dropbox can be connected through an operator-owned HTTPS bridge. Create an app in Dropbox, give it only the permissions you need, and place its token in your bridge—not in the browser. Then register that bridge in CUSTOM_CONNECTORS_JSON.", detail: "Radian’s current Dropbox path is the custom connector bridge; a one-click Dropbox OAuth connector is not included yet.", link: "https://www.dropbox.com/developers/apps", linkLabel: "Open Dropbox App Console" },
+  { title: "Choose your studio folder", copy: "Choose a folder to confirm this browser can access it. For Blender, Bambu Studio, and server-side jobs, also set STUDIO_ROOT in your private dot env file to that folder’s full path, then restart Radian.", detail: "Radian restricts production jobs to this workspace so tasks cannot wander through the rest of your computer.", directory: true },
+  { title: "Turn on voice", copy: "Allow microphone access when your browser asks. Then switch on the wave icon. You can say Hello Radian, or simply use Radian’s name, to begin speaking.", detail: "Wake-word listening works best in Chrome or Edge while Radian is open. Your operating system may also require microphone permission for the browser." },
+  { title: "You’re ready", copy: "Radian will only use connectors that are actually configured. Actions that create, send, or start something still require approval before they run.", detail: "Try asking: Radian, create a short production brief in Google Docs." }
+] as const;
+
+function Onboarding({ onClose }: { onClose: () => void }) {
+  const [step, setStep] = useState(0);
+  const [speaking, setSpeaking] = useState(false);
+  const [folderName, setFolderName] = useState("");
+  const [status, setStatus] = useState<ConnectorStatus>();
+  const current = onboardingSteps[step];
+
+  useEffect(() => { fetchConnectorStatus().then(setStatus).catch(() => undefined); }, []);
+  useEffect(() => () => window.speechSynthesis?.cancel(), []);
+
+  const speak = () => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(`${current.title}. ${current.copy} ${current.detail}`);
+    utterance.rate = .96;
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => { if (speaking) speak(); }, [step]);
+
+  const close = (complete = false) => {
+    window.speechSynthesis?.cancel();
+    if (complete) localStorage.setItem("radian-onboarding-complete", "true");
+    onClose();
+  };
+
+  const chooseFolder = async () => {
+    const picker = (window as typeof window & { showDirectoryPicker?: () => Promise<{ name: string }> }).showDirectoryPicker;
+    if (!picker) return setFolderName("Folder selection needs Chrome or Edge");
+    try { setFolderName((await picker()).name); }
+    catch (error) { if ((error as DOMException).name !== "AbortError") setFolderName("Folder access was not granted"); }
+  };
+
+  const connectionLabel = step === 1 && status?.googleWorkspace ? "Connected" : step === 2 && status?.custom.length ? "Bridge configured" : undefined;
+  return <div className="onboarding-backdrop" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <section className="onboarding-card">
+      <div className="onboarding-top"><div><span className="onboarding-kicker">GUIDED SETUP · {step + 1} OF {onboardingSteps.length}</span><div className="onboarding-progress"><i style={{ width: `${((step + 1) / onboardingSteps.length) * 100}%` }} /></div></div><button className="onboarding-close" onClick={() => close()} aria-label="Close setup">×</button></div>
+      <div className="onboarding-icon"><StudioIcon name={step === 4 ? "waves" : "spark"} /></div>
+      {connectionLabel && <span className="connected-badge">✓ {connectionLabel}</span>}
+      <h2 id="onboarding-title">{current.title}</h2><p>{current.copy}</p><small>{current.detail}</small>
+      <div className="onboarding-actions">
+        <button className={`narrate ${speaking ? "active" : ""}`} onClick={() => speaking ? (window.speechSynthesis.cancel(), setSpeaking(false)) : speak()}><StudioIcon name={speaking ? "waves" : "mic"} />{speaking ? "Stop voice" : "Listen to Radian"}</button>
+        {"link" in current && <a className="setup-link" href={current.link} target="_blank" rel="noreferrer">{current.linkLabel} ↗</a>}
+        {"directory" in current && <button className="setup-link" onClick={chooseFolder}>{folderName || "Choose a folder"}</button>}
+      </div>
+      <div className="onboarding-nav"><button className="secondary" disabled={step === 0} onClick={() => setStep((value) => value - 1)}>Back</button>{step < onboardingSteps.length - 1 ? <button className="primary" onClick={() => setStep((value) => value + 1)}>Continue</button> : <button className="primary" onClick={() => close(true)}>Finish setup</button>}</div>
+    </section>
+  </div>;
 }
 
 function Controller() {
